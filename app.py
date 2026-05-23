@@ -149,24 +149,22 @@ with st.sidebar:
     st.header("💾 Cloud Files")
     save_str = get_save_code()
     st.text_area("Your Cloud Save Code:", value=save_str, height=65)
-    load_input = st.text_input("Paste Save Code to Load进度:")
+    load_input = st.text_input("Paste Save Code to Load:")
     if st.button("Execute Data Load", use_container_width=True):
         if load_save_code(load_input):
             st.success("Progress loaded!")
             st.rerun()
 
 # Workspace Screen Separation
-col_controls, col_inventory = st.columns([1, 1])
+col_controls, col_inventory = st.columns()
 
 with col_controls:
     st.subheader("🕹️ Machine Terminal")
     
-    # Rolling Mechanics with Slot-Style Animation Canvas
+    # Rolling Mechanics
     col_btn, col_luck = st.columns(2)
-    
     with col_btn:
         roll_clicked = st.button("🎲 ROLL ITEM", use_container_width=True, type="primary")
-        
     with col_luck:
         if st.button(f"✨ Upgrade Luck (💰{st.session_state.luck_cost:,})", use_container_width=True):
             if st.session_state.coins >= st.session_state.luck_cost:
@@ -182,7 +180,6 @@ with col_controls:
     animation_placeholder = st.empty()
     
     if roll_clicked:
-        # Loop fake rolling ticks down across various speed delays to mirror physics deceleration
         for delay in [0.05, 0.05, 0.08, 0.08, 0.12, 0.15, 0.20, 0.30]:
             fake_item = select_random_item()
             color = get_rarity_color(fake_item["rarity"])
@@ -190,3 +187,6 @@ with col_controls:
                 <div style="background-color: #1E1E1E; border: 3px dashed {color}; padding: 25px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
                     <h4 style="color: #888888; margin: 0; text-transform: uppercase; letter-spacing: 2px;">⚡ SPINNING ⚡</h4>
                     <h2 style="color: {color}; margin: 10px 0;">{fake_item['name']}</h2>
+                    <span style="background-color: {color}; color: white; padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 14px;">
+                        {fake_item['rarity']}
+                    </span>
