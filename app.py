@@ -134,9 +134,9 @@ st.title("💎 Infinite RNG RPG Simulator v3.2")
 # Sidebar Structure
 with st.sidebar:
     st.header("👤 Player Stats")
-    st.metric(label="Coins Balance", value=f"💰 {st.session_state.coins:,}")
-    st.metric(label="Total Luck Multiplier", value=f"🍀 {get_total_luck():.2f}x")
-    st.subheader(f"🌍 {st.session_state.worlds[st.session_state.current_world]}")
+    st.metric(label="Coins Balance", value="💰 {:,}".format(st.session_state.coins))
+    st.metric(label="Total Luck Multiplier", value="{:.2f}x".format(get_total_luck()))
+    st.subheader("🌍 " + str(st.session_state.worlds[st.session_state.current_world]))
     
     st.divider()
     st.header("⚙️ Automation Controls")
@@ -166,7 +166,8 @@ with col_controls:
     with col_btn:
         roll_clicked = st.button("🎲 ROLL ITEM", use_container_width=True, type="primary")
     with col_luck:
-        if st.button(f"✨ Upgrade Luck (💰{st.session_state.luck_cost:,})", use_container_width=True):
+        luck_btn_text = "✨ Upgrade Luck (💰{:,})".format(st.session_state.luck_cost)
+        if st.button(luck_btn_text, use_container_width=True):
             if st.session_state.coins >= st.session_state.luck_cost:
                 st.session_state.coins -= st.session_state.luck_cost
                 st.session_state.base_luck *= 1.8
@@ -183,10 +184,10 @@ with col_controls:
         for delay in [0.05, 0.05, 0.08, 0.08, 0.12, 0.15, 0.20, 0.30]:
             fake_item = select_random_item()
             color = get_rarity_color(fake_item["rarity"])
-            animation_placeholder.markdown(f"""
-                <div style="background-color: #1E1E1E; border: 3px dashed {color}; padding: 25px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
+            
+            spin_html = """
+                <div style="background-color: #1E1E1E; border: 3px dashed {c}; padding: 25px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
                     <h4 style="color: #888888; margin: 0; text-transform: uppercase; letter-spacing: 2px;">⚡ SPINNING ⚡</h4>
-                    <h2 style="color: {color}; margin: 10px 0;">{fake_item['name']}</h2>
-                    <span style="background-color: {color}; color: white; padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 14px;">
-                        {fake_item['rarity']}
-                    </span>
+                    <h2 style="color: {c}; margin: 10px 0;">{n}</h2>
+                    <span style="background-color: {c}; color: white; padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 14px;">
+                        {r}
