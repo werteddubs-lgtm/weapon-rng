@@ -2,6 +2,7 @@ import streamlit as st
 import random
 import json
 import base64
+import time
 
 # --- INITIALIZATION & DATABASE ---
 if 'game_initialized' not in st.session_state:
@@ -62,7 +63,6 @@ if 'game_initialized' not in st.session_state:
         {"name": "Prompt Injection Hypernova", "rarity": "Absolute Zero", "value": 9999999999999, "world": 17}
     ]
     
-    # Live Player State Variables
     st.session_state.inventory = {}
     st.session_state.coins = 100
     st.session_state.base_luck = 1.0
@@ -73,14 +73,14 @@ if 'game_initialized' not in st.session_state:
     st.session_state.log = ["Welcome to the Infinite RNG Simulator! Ready your luck."]
     st.session_state.game_initialized = True
 
-# --- HELPER FUNCTIONS ---
+# --- HELPER LOGIC ENGINE ---
 def get_total_luck():
     return st.session_state.base_luck + st.session_state.crafted_luck
 
-def roll_one():
+def select_random_item():
     world_loot = [i for i in st.session_state.loot_table if i["world"] == st.session_state.current_world]
     if not world_loot:
-        return "🎲 No items found in this world zone yet."
+        return {"name": "Blank Void Particle", "rarity": "Common", "value": 0}
     
     available_rarities = list(set(i["rarity"] for i in world_loot))
     pool_weights, pool_items = [], []
@@ -94,17 +94,17 @@ def roll_one():
             pool_weights.append(weight)
             pool_items.append(item)
             
-    selected = random.choices(pool_items, weights=pool_weights, k=1)[0]
-    
-    if st.session_state.auto_sell_tier != "None":
-        p_idx = st.session_state.rarities.index(selected["rarity"])
-        f_idx = st.session_state.rarities.index(st.session_state.auto_sell_tier)
-        if p_idx <= f_idx:
-            st.session_state.coins += selected["value"]
-            return f"🤖 [AUTO-SOLD] [{selected['rarity'].upper()}] {selected['name']} for 💰{selected['value']} coins."
-            
-    st.session_state.inventory[selected["name"]] = st.session_state.inventory.get(selected["name"], 0) + 1
-    return f"🎒 [ACQUIRED] [{selected['rarity'].upper()}] {selected['name']} added to backpack!"
+    return random.choices(pool_items, weights=pool_weights, k=1)[0]
+
+def get_rarity_color(rarity):
+    colors = {
+        "Common": "#A0A0A0", "Uncommon": "#30D5C8", "Rare": "#007BFF", "Epic": "#8A2BE2",
+        "Legendary": "#FFD700", "Mythic": "#FF4500", "Omniscient": "#00FFFF", "Transcendent": "#FF00FF",
+        "Merciless": "#8B0000", "World Ending": "#4B0082", "Challenged": "#FF1493", "Challenged +": "#7FFF00",
+        "Meme": "#E6A817", "Shitpost": "#795548", "Unreal": "#000000", "Multiversal Collapse": "#FF3333",
+        "Author's Blessing": "#FFD700", "Absolute Zero": "#00008B"
+    }
+    return colors.get(rarity, "#FFFFFF")
 
 def get_save_code():
     data = {
@@ -127,74 +127,66 @@ def load_save_code(code):
     except:
         return False
 
-# --- WEB UI DESIGN ---
+# --- UI APP INTERFACE ---
 st.set_page_config(page_title="Infinite RNG RPG", layout="wide")
-st.title("💎 Infinite RNG RPG Simulator v3.0")
+st.title("💎 Infinite RNG RPG Simulator v3.2")
 
-# Sidebar Configuration (Stats & Controls)
+# Sidebar Structure
 with st.sidebar:
-    st.header("👤 Player Statistics")
+    st.header("👤 Player Stats")
     st.metric(label="Coins Balance", value=f"💰 {st.session_state.coins:,}")
     st.metric(label="Total Luck Multiplier", value=f"🍀 {get_total_luck():.2f}x")
     st.subheader(f"🌍 {st.session_state.worlds[st.session_state.current_world]}")
     
     st.divider()
-    st.header("⚙️ Automation Engine")
+    st.header("⚙️ Automation Controls")
     st.session_state.auto_sell_tier = st.selectbox(
         "Auto-Sell Threshold (And Below)", 
         ["None"] + st.session_state.rarities
     )
     
     st.divider()
-    st.header("💾 Backup Core")
+    st.header("💾 Cloud Files")
     save_str = get_save_code()
-    st.text_area("Your Cloud Save Code:", value=save_str, height=70, help="Copy this to save progress.")
-    load_input = st.text_input("Paste Save Code to Load:")
-    if st.button("Execute Data Load"):
+    st.text_area("Your Cloud Save Code:", value=save_str, height=65)
+    load_input = st.text_input("Paste Save Code to Load进度:")
+    if st.button("Execute Data Load", use_container_width=True):
         if load_save_code(load_input):
-            st.success("Progress restored!")
+            st.success("Progress loaded!")
             st.rerun()
-        else:
-            st.error("Corrupted save file.")
 
-# Main Action Dashboard Layout
-col1, col2 = st.columns([2, 1])
+# Workspace Screen Separation
+col_controls, col_inventory = st.columns([1, 1])
 
-with col1:
-    st.subheader("🕹️ Control Terminal")
+with col_controls:
+    st.subheader("🕹️ Machine Terminal")
     
-    col_r1, col_r2, col_r3 = st.columns(3)
-    with col_r1:
-        if st.button("🎲 Single Roll", use_container_width=True):
-            res = roll_one()
-            st.session_state.log.insert(0, res)
-    with col_r2:
-        loops = st.number_input("Auto-Roll Count", min_value=1, max_value=20, value=5)
-        if st.button(f"🤖 Auto-Roll {loops}x", use_container_width=True):
-            for _ in range(loops):
-                res = roll_one()
-                st.session_state.log.insert(0, res)
-    with col_r3:
+    # Rolling Mechanics with Slot-Style Animation Canvas
+    col_btn, col_luck = st.columns(2)
+    
+    with col_btn:
+        roll_clicked = st.button("🎲 ROLL ITEM", use_container_width=True, type="primary")
+        
+    with col_luck:
         if st.button(f"✨ Upgrade Luck (💰{st.session_state.luck_cost:,})", use_container_width=True):
             if st.session_state.coins >= st.session_state.luck_cost:
                 st.session_state.coins -= st.session_state.luck_cost
                 st.session_state.base_luck *= 1.8
                 st.session_state.luck_cost = int(st.session_state.luck_cost * 2.2)
                 st.session_state.log.insert(0, "🍀 LUCK MULTIPLIER ASCENDED!")
+                st.rerun()
             else:
                 st.error("Insufficient coins!")
 
-    st.divider()
-    st.subheader("🌍 Spatial Dimensions")
-    world_selection = st.selectbox(
-        "Select Travel Destination:", 
-        options=list(st.session_state.worlds.keys()), 
-        format_func=lambda x: f"World {x}: {st.session_state.worlds[x]}"
-    )
-    if st.button("Engage Dimensional Jump"):
-        st.session_state.current_world = world_selection
-        st.session_state.log.insert(0, f"🚀 Teleported to World {world_selection}!")
-        st.rerun()
-
-    st.divider()
-    st.subheader("📜 Live Feed Log")
+    # Dynamic Animation Matrix Container
+    animation_placeholder = st.empty()
+    
+    if roll_clicked:
+        # Loop fake rolling ticks down across various speed delays to mirror physics deceleration
+        for delay in [0.05, 0.05, 0.08, 0.08, 0.12, 0.15, 0.20, 0.30]:
+            fake_item = select_random_item()
+            color = get_rarity_color(fake_item["rarity"])
+            animation_placeholder.markdown(f"""
+                <div style="background-color: #1E1E1E; border: 3px dashed {color}; padding: 25px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
+                    <h4 style="color: #888888; margin: 0; text-transform: uppercase; letter-spacing: 2px;">⚡ SPINNING ⚡</h4>
+                    <h2 style="color: {color}; margin: 10px 0;">{fake_item['name']}</h2>
